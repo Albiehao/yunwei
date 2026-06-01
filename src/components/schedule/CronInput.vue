@@ -12,6 +12,10 @@
         <Select v-model="minute" :options="minuteOptions" />
       </div>
     </div>
+    <div v-if="frequency === 'interval'" class="cron-row">
+      <label class="cron-label">间隔</label>
+      <Select v-model="intervalMin" :options="intervalOptions" />
+    </div>
     <div v-if="frequency === 'custom'" class="cron-row">
       <label class="cron-label">星期</label>
       <div class="cron-days">
@@ -45,24 +49,29 @@ const emit = defineEmits<{
 const frequency = ref('workday')
 const hour = ref('9')
 const minute = ref('0')
+const intervalMin = ref('5')
+const intervalOptions = [
+  { label: '5 分钟', value: '5' },
+  { label: '10 分钟', value: '10' },
+  { label: '15 分钟', value: '15' },
+  { label: '30 分钟', value: '30' },
+]
 const selectedDays = ref<string[]>(['1', '2', '3', '4', '5'])
 
 const freqOptions = [
   { label: '每天', value: 'daily' },
   { label: '工作日（周一至周五）', value: 'workday' },
-  { label: '自定义', value: 'custom' },
+  { label: '每N分钟', value: 'interval' },
+  { label: '自定义星期', value: 'custom' },
 ]
 
 const hourOptions = Array.from({ length: 24 }, (_, i) => ({
   label: `${String(i).padStart(2, '0')} 时`, value: String(i)
 }))
 
-const minuteOptions = [
-  { label: '00 分', value: '0' },
-  { label: '15 分', value: '15' },
-  { label: '30 分', value: '30' },
-  { label: '45 分', value: '45' },
-]
+const minuteOptions = Array.from({ length: 60 }, (_, i) => ({
+  label: `${String(i).padStart(2, '0')} 分`, value: String(i)
+}))
 
 const dayOptions = [
   { label: '一', value: '1' },
@@ -82,6 +91,7 @@ function generateCron(): string {
   const m = minute.value
   if (frequency.value === 'daily') return `${m} ${h} * * *`
   if (frequency.value === 'workday') return `${m} ${h} * * 1-5`
+  if (frequency.value === 'interval') return `*/${intervalMin.value} * * * *`
   if (frequency.value === 'custom') {
     if (selectedDays.value.length === 0) return `${m} ${h} * * *`
     return `${m} ${h} * * ${selectedDays.value.sort().join(',')}`
@@ -96,6 +106,7 @@ const previewText = computed(() => {
   const time = `${h}:${m}`
   if (frequency.value === 'daily') return `每天 ${time} 执行`
   if (frequency.value === 'workday') return `周一至周五 ${time} 执行`
+  if (frequency.value === 'interval') return `每 ${intervalMin.value} 分钟执行一次`
   if (frequency.value === 'custom') {
     if (selectedDays.value.length === 0) return `请选择至少一天`
     const days = selectedDays.value.sort().map(d => dayLabels[d]).join('、')
@@ -105,7 +116,7 @@ const previewText = computed(() => {
 })
 
 // Sync to parent
-watch([frequency, hour, minute, selectedDays], () => {
+watch([frequency, hour, minute, intervalMin, selectedDays], () => {
   emit('update:modelValue', generateCron())
 }, { immediate: true })
 
@@ -117,7 +128,10 @@ watch(() => props.modelValue, (val) => {
   const [m, h, , , dow] = parts
   minute.value = m === '*' ? '0' : m
   hour.value = h === '*' ? '9' : h
-  if (dow === '*' || dow === '?') {
+  if (m.startsWith('*/')) {
+    frequency.value = 'interval'
+    intervalMin.value = m.slice(2)
+  } else if (dow === '*' || dow === '?') {
     frequency.value = 'daily'
   } else if (dow === '1-5') {
     frequency.value = 'workday'
