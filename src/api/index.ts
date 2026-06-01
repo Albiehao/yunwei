@@ -10,13 +10,35 @@ const api = axios.create({
   }
 })
 
+// Request interceptor - attach auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
 // Response interceptor - unwrap data
 api.interceptors.response.use(
   (response) => {
     return response.data
   },
   (error) => {
-    const message = error.response?.data?.message || error.message || '请求失败'
+    const detail = error.response?.data?.detail
+    const message = error.response?.data?.message || detail || error.message || '请求失败'
+
+    // 401 → redirect to login
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+    }
+
     console.error('API Error:', message)
     return Promise.reject(error)
   }
