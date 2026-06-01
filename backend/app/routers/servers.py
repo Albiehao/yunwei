@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models import User
 from app.models.server import Server, ServerStatus
-from app.schemas.server import ServerOut, ServerActionResponse
+from app.schemas.server import ServerOut
 from app.utils.auth import get_current_user
 from app.aliyun_client import list_ecs_instances, start_ecs_instance, stop_ecs_instance
+from app.response import success, error
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,12 +15,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/servers", tags=["服务器"])
 
 
-@router.get("", response_model=List[ServerOut])
+@router.get("")
 def list_servers(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """获取服务器列表，优先从阿里云拉取实时数据"""
     aliyun_instances = list_ecs_instances()
     if aliyun_instances:
-        # 同步到本地数据库
         for inst in aliyun_instances:
             existing = db.query(Server).filter(Server.id == inst["id"]).first()
             if existing:
@@ -41,30 +41,27 @@ def list_servers(db: Session = Depends(get_db), current_user: User = Depends(get
                     disk=inst["disk"],
                     bandwidth=inst["bandwidth"],
                     charge_type=inst["charge_type"],
-                    user_id=current_user.id,
+                    user_id=int(current_user.id) if str(current_user.id).isdigit() else 1,
                 )
                 db.add(server)
         db.commit()
-        return aliyun_instances
+        return success(aliyun_instances)
 
-    # 无阿里云配置时读本地 DB
     servers = db.query(Server).filter(Server.user_id == current_user.id).all()
-    return servers
+    return success(servers)
 
 
-@router.post("/{server_id}/start", response_model=ServerActionResponse)
+@router.post("/{server_id}/start")
 def start_server(server_id: str, current_user: User = Depends(get_current_user)):
-    """启动服务器"""
     ok = start_ecs_instance(server_id)
     if not ok:
-        raise HTTPException(status_code=500, detail="启动失败，请检查阿里云配置")
-    return ServerActionResponse(success=True, message="启动指令已发送")
+        return error("启动失败，请检查阿里云配置", 500)
+    return success({"success": True}, "启动指令已发送")
 
 
-@router.post("/{server_id}/stop", response_model=ServerActionResponse)
+@router.post("/{server_id}/stop")
 def stop_server(server_id: str, current_user: User = Depends(get_current_user)):
-    """停止服务器"""
     ok = stop_ecs_instance(server_id)
     if not ok:
-        raise HTTPException(status_code=500, detail="停止失败，请检查阿里云配置")
-    return ServerActionResponse(success=True, message="停止指令已发送")
+        return error("停止失败，请检查阿里云配置", 500)
+    return success({"success": True}, "停止指令已发送")
