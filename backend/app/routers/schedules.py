@@ -41,14 +41,15 @@ def list_schedules(db: Session = Depends(get_db), current_user: User = Depends(g
 
 @router.post("")
 def create_schedule(data: ScheduleCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    server = db.query(Server).filter(Server.id == data.server_id).first()
+    sid = data.serverId
+    server = db.query(Server).filter(Server.id == sid).first()
     if not server:
         return error("服务器不存在", 404)
     schedule = Schedule(
         name=data.name,
-        server_id=data.server_id,
+        server_id=sid,
         action=data.action,
-        cron_expression=data.cron_expression,
+        cron_expression=data.cronExpression,
         timezone=data.timezone,
         enabled=data.enabled,
         user_id=current_user.id,
