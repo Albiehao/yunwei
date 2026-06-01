@@ -76,6 +76,30 @@ def _dow_map(py_dow: int) -> int:
     return (py_dow + 1) % 7
 
 
+def _calc_next(cron: str) -> str:
+    """Calculate next run time from cron expression (within 7 days)"""
+    import datetime as dt
+    parts = cron.strip().split()
+    if len(parts) != 5:
+        return ""
+    base = dt.datetime.now() + dt.timedelta(minutes=1)
+    base = base.replace(second=0)
+    for day_offset in range(8):
+        t = base + dt.timedelta(days=day_offset)
+        for h in range(24):
+            for m in range(60):
+                ts = t.replace(hour=h, minute=m)
+                if ts <= dt.datetime.now():
+                    continue
+                if not _match_cron(m, parts[0]): continue
+                if not _match_cron(h, parts[1]): continue
+                if not _match_cron(ts.day, parts[2]): continue
+                if not _match_cron(ts.month, parts[3]): continue
+                if not _match_cron(str(_dow_map(ts.weekday())), parts[4]): continue
+                return ts.isoformat()
+    return ""
+
+
 def run_scheduler():
     """Background scheduler: check every 60s for tasks to execute"""
     while True:
@@ -84,6 +108,12 @@ def run_scheduler():
             now = time.localtime()
             schedules = db.query(Schedule).filter(Schedule.enabled == True).all()
             for s in schedules:
+                # Update next run time
+                s.next_run_at = __import__("datetime").datetime.utcnow()
+                next_str = _calc_next(s.cron_expression)
+                if next_str:
+                    s.next_run_at = __import__("datetime").datetime.fromisoformat(next_str)
+
                 parts = s.cron_expression.strip().split()
                 if len(parts) != 5:
                     continue
@@ -92,7 +122,6 @@ def run_scheduler():
                 if not _match_cron(now.tm_hour, hour): continue
                 if not _match_cron(now.tm_mday, dom): continue
                 if not _match_cron(now.tm_mon, month): continue
-                # DOW: convert Python's tm_wday (0=Mon) to cron's DOW (0=Sun)
                 if not _match_cron(str(_dow_map(now.tm_wday)), dow): continue
 
                 server = db.query(Server).filter(Server.id == s.server_id).first()
