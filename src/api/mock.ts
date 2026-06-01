@@ -1,4 +1,4 @@
-import type { MockAdapter } from 'axios-mock-adapter'
+import MockAdapter from 'axios-mock-adapter'
 import type { Server } from '@/types/server'
 import type { Schedule, ScheduleFormData } from '@/types/schedule'
 import type { User } from '@/types/common'
@@ -171,7 +171,7 @@ function notFound(id: string) {
 export default function setupMock(mock: MockAdapter) {
   // ---- Auth ----
 
-  mock.onPost('/api/auth/login').reply(async (config) => {
+  mock.onPost('/api/auth/login').reply(async (config: any) => {
     await randomDelay()
     const { username, password } = JSON.parse(config.data || '{}')
     const user = authUsers.find((u) => u.username === username && u.password === password)
@@ -199,7 +199,7 @@ export default function setupMock(mock: MockAdapter) {
     return [200, wrap([...mockUsers])]
   })
 
-  mock.onPost('/api/users').reply(async (config) => {
+  mock.onPost('/api/users').reply(async (config: any) => {
     await randomDelay()
     const body = JSON.parse(config.data || '{}')
     const now = new Date().toISOString()
@@ -216,7 +216,7 @@ export default function setupMock(mock: MockAdapter) {
     return [200, wrap(user)]
   })
 
-  mock.onPut(/\/api\/users\/([^/]+)/).reply(async (config) => {
+  mock.onPut(/\/api\/users\/([^/]+)/).reply(async (config: any) => {
     await randomDelay()
     const id = config.url!.match(/\/api\/users\/([^/]+)/)![1]
     const body = JSON.parse(config.data || '{}')
@@ -226,7 +226,7 @@ export default function setupMock(mock: MockAdapter) {
     return [200, wrap({ ...user })]
   })
 
-  mock.onDelete(/\/api\/users\/([^/]+)/).reply(async (config) => {
+  mock.onDelete(/\/api\/users\/([^/]+)/).reply(async (config: any) => {
     await randomDelay()
     const id = config.url!.match(/\/api\/users\/([^/]+)/)![1]
     const index = mockUsers.findIndex((u) => u.id === id)
@@ -242,7 +242,7 @@ export default function setupMock(mock: MockAdapter) {
     return [200, wrap([...servers])]
   })
 
-  mock.onPost(/\/api\/servers\/([^/]+)\/start/).reply(async (config) => {
+  mock.onPost(/\/api\/servers\/([^/]+)\/start/).reply(async (config: any) => {
     await randomDelay()
     const id = config.url!.match(/\/api\/servers\/([^/]+)\/start/)![1]
     const server = servers.find((s) => s.id === id)
@@ -255,7 +255,7 @@ export default function setupMock(mock: MockAdapter) {
     return [200, wrap({ success: true })]
   })
 
-  mock.onPost(/\/api\/servers\/([^/]+)\/stop/).reply(async (config) => {
+  mock.onPost(/\/api\/servers\/([^/]+)\/stop/).reply(async (config: any) => {
     await randomDelay()
     const id = config.url!.match(/\/api\/servers\/([^/]+)\/stop/)![1]
     const server = servers.find((s) => s.id === id)
@@ -275,7 +275,7 @@ export default function setupMock(mock: MockAdapter) {
     return [200, wrap([...schedules])]
   })
 
-  mock.onPost('/api/schedules').reply(async (config) => {
+  mock.onPost('/api/schedules').reply(async (config: any) => {
     await randomDelay()
     const body: ScheduleFormData = JSON.parse(config.data || '{}')
     const now = new Date().toISOString()
@@ -295,7 +295,7 @@ export default function setupMock(mock: MockAdapter) {
     return [200, wrap(schedule)]
   })
 
-  mock.onPut(/\/api\/schedules\/([^/]+)/).reply(async (config) => {
+  mock.onPut(/\/api\/schedules\/([^/]+)/).reply(async (config: any) => {
     await randomDelay()
     const id = config.url!.match(/\/api\/schedules\/([^/]+)/)![1]
     const body = JSON.parse(config.data || '{}')
@@ -305,7 +305,7 @@ export default function setupMock(mock: MockAdapter) {
     return [200, wrap({ ...schedule })]
   })
 
-  mock.onDelete(/\/api\/schedules\/([^/]+)/).reply(async (config) => {
+  mock.onDelete(/\/api\/schedules\/([^/]+)/).reply(async (config: any) => {
     await randomDelay()
     const id = config.url!.match(/\/api\/schedules\/([^/]+)/)![1]
     const index = schedules.findIndex((s) => s.id === id)
@@ -314,7 +314,7 @@ export default function setupMock(mock: MockAdapter) {
     return [200, wrap(null)]
   })
 
-  mock.onPatch(/\/api\/schedules\/([^/]+)\/toggle/).reply(async (config) => {
+  mock.onPatch(/\/api\/schedules\/([^/]+)\/toggle/).reply(async (config: any) => {
     await randomDelay()
     const id = config.url!.match(/\/api\/schedules\/([^/]+)\/toggle/)![1]
     const schedule = schedules.find((s) => s.id === id)

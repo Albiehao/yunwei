@@ -1,34 +1,53 @@
 @echo off
-chcp 65001 >nul
+
 echo ========================================
-echo   寻天运维平台 - 一键启动
+echo   XunTian Ops Platform - Quick Start
 echo ========================================
 echo.
 
-REM 构建前端
-echo [1/3] 构建前端...
-cd /d "%~dp0"
-call pnpm build
-if %errorlevel% neq 0 (
-    echo 前端构建失败！
+echo Step 1/4: Installing backend packages...
+cd /d "%~dp0backend"
+C:\Users\11859\AppData\Local\Programs\Python\Python314\python.exe -m pip install -r requirements.txt -q
+if errorlevel 1 (
+    echo FAILED
     pause
     exit /b 1
 )
-echo 前端构建成功！
+echo OK
 echo.
 
-REM 安装后端依赖
-echo [2/3] 安装后端依赖...
-cd backend
-call pip install -r requirements.txt -q
-echo 后端依赖安装完成！
+echo Step 2/4: Installing frontend packages...
+cd /d "%~dp0"
+call pnpm install >nul
+if errorlevel 1 (
+    echo FAILED
+    pause
+    exit /b 1
+)
+echo OK
 echo.
 
-REM 启动服务
-echo [3/3] 启动服务...
+echo Step 3/4: Building frontend...
+call pnpm build >nul
+if errorlevel 1 (
+    echo FAILED
+    pause
+    exit /b 1
+)
+echo OK
 echo.
-echo 访问地址: http://localhost:3000
-echo 登录账号: admin / admin123
+
+echo Step 4/4: Starting server...
 echo.
-uvicorn app.main:app --host 0.0.0.0 --port 3000 --reload
+echo URL:   http://localhost:3000
+echo Login: admin / admin123
+echo.
+echo --- Server Log ---
+echo.
+
+cd /d "%~dp0backend"
+C:\Users\11859\AppData\Local\Programs\Python\Python314\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 3000 --reload
+
+echo.
+echo Server stopped.
 pause

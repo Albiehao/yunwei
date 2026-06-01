@@ -1,6 +1,6 @@
 import api from './index'
 import type { ApiResponse } from '@/types/common'
-import type { User } from './auth'
+import type { User } from '@/types/common'
 
 export function getUsers(): Promise<ApiResponse<User[]>> {
   return api.get('/users')

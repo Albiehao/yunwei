@@ -40,6 +40,9 @@ const appStore = useAppStore()
 const menuItems = [
   { path: '/servers', icon: 'server', label: '我的服务器' },
   { path: '/schedules', icon: 'schedule', label: '定时开关' },
+  { path: '/release', icon: 'trash', label: '释放实例' },
+  { path: '/tasks', icon: 'schedule', label: '任务列表' },
+  { path: '/logs', icon: 'schedule', label: '操作日志' },
   { path: '/users', icon: 'user', label: '用户管理' },
 ]
 </script>

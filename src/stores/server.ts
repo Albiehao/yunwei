@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Server } from '@/types'
 import { ServerStatus } from '@/types'
-import { getServers, startServer, stopServer } from '@/api/server'
+import { getServers, startServer, stopServer, releaseServer } from '@/api/server'
 
 export const useServerStore = defineStore('server', () => {
   const servers = ref<Server[]>([])
@@ -21,11 +21,13 @@ export const useServerStore = defineStore('server', () => {
     return servers.value.find(s => s.id === id)
   }
 
-  async function fetchServers() {
+  async function fetchServers(region?: string) {
     loading.value = true
     error.value = null
     try {
-      const res = await getServers()
+      const res = await getServers(region)
+      console.log('[ServerStore] API response:', res)
+      console.log('[ServerStore] Data:', res.data)
       servers.value = res.data
     } catch (e: any) {
       error.value = e.message || '获取服务器列表失败'
@@ -47,12 +49,12 @@ export const useServerStore = defineStore('server', () => {
     }
   }
 
-  async function stopServerAction(id: string) {
+  async function stopServerAction(id: string, mode: string = 'KeepCharging') {
     const server = servers.value.find(s => s.id === id)
     if (!server) return
     server.status = ServerStatus.Stopping
     try {
-      await stopServer(id)
+      await stopServer(id, mode)
       server.status = ServerStatus.Stopped
     } catch (e: any) {
       server.status = ServerStatus.Error
@@ -60,9 +62,19 @@ export const useServerStore = defineStore('server', () => {
     }
   }
 
+  async function releaseServerAction(id: string) {
+    servers.value = servers.value.filter(s => s.id !== id)
+    try {
+      await releaseServer(id)
+    } catch (e: any) {
+      error.value = e.message || '释放失败'
+      await fetchServers()
+    }
+  }
+
   return {
     servers, loading, error,
     runningServers, stoppedServers, serverCount, serverById,
-    fetchServers, startServerAction, stopServerAction
+    fetchServers, startServerAction, stopServerAction, releaseServerAction
   }
 })

@@ -13,16 +13,19 @@ import { computed } from 'vue'
 import type { ServerSpec } from '@/types'
 import { Icon } from '@/components/ui'
 
-const props = defineProps<{
-  spec: ServerSpec
-}>()
+const props = withDefaults(defineProps<{
+  spec?: ServerSpec
+}>(), { spec: undefined })
 
-const specList = computed(() => [
-  { icon: 'Cpu', value: `${props.spec.cpu}`, label: '核' },
-  { icon: 'Monitor', value: `${props.spec.memory}`, label: 'GB' },
-  { icon: 'DataBoard', value: `${props.spec.disk}`, label: 'GB' },
-  { icon: 'Connection', value: `${props.spec.bandwidth}`, label: 'Mbps' },
-])
+const specList = computed(() => {
+  const s = props.spec || { cpu: 0, memory: 0, disk: 0, bandwidth: 0 }
+  return [
+    { icon: 'Cpu', value: `${s.cpu}`, label: '核' },
+    { icon: 'Monitor', value: `${s.memory}`, label: 'GB' },
+    { icon: 'DataBoard', value: `${s.disk}`, label: 'GB' },
+    { icon: 'Connection', value: `${s.bandwidth}`, label: 'Mbps' },
+  ]
+})
 </script>
 
 <style scoped lang="scss">

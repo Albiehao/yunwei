@@ -7,36 +7,47 @@ from app.database import engine, Base, SessionLocal
 from app.models import User, UserRole, UserStatus
 from app.models.server import Server
 from app.models.schedule import Schedule
+from app.models.task import Task
 from app.utils.auth import hash_password
 import os
 
 
 def init_db():
-    """Create tables and seed default admin user"""
+    """Create tables, migrate columns, and seed default admin user"""
     Base.metadata.create_all(bind=engine)
+    # Migrate columns
+    from sqlalchemy import text, inspect
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE servers ADD COLUMN remark VARCHAR(200)"))
+            conn.commit()
+            print("[DB] Added remark column")
+    except Exception:
+        pass
     db = SessionLocal()
     try:
-        admin = db.query(User).filter(User.username == "admin").first()
-        if not admin:
-            admin = User(
-                username="admin",
-                email="admin@xuntianops.com",
-                password_hash=hash_password("admin123"),
-                role=UserRole.ADMIN,
-                status=UserStatus.ACTIVE,
-            )
-            db.add(admin)
-        demo = db.query(User).filter(User.username == "user").first()
-        if not demo:
-            demo = User(
-                username="user",
-                email="user@xuntianops.com",
-                password_hash=hash_password("user123"),
-                role=UserRole.OPERATOR,
-                status=UserStatus.ACTIVE,
-            )
-            db.add(demo)
+        # Recreate admin user with current hash algorithm
+        db.query(User).filter(User.username == "admin").delete()
+        admin = User(
+            username="admin",
+            email="admin@xuntianops.com",
+            password_hash=hash_password("admin123"),
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
+        )
+        db.add(admin)
+
+        db.query(User).filter(User.username == "user").delete()
+        demo = User(
+            username="user",
+            email="user@xuntianops.com",
+            password_hash=hash_password("user123"),
+            role=UserRole.OPERATOR,
+            status=UserStatus.ACTIVE,
+        )
+        db.add(demo)
         db.commit()
+        print("[DB] Admin user seeded: admin / admin123")
     finally:
         db.close()
 
@@ -63,15 +74,19 @@ app.add_middleware(
 )
 
 # Register API routers
-from app.routers import auth, servers, schedules, users
+from app.routers import auth, servers, schedules, users, ssh, tasks, logs
 app.include_router(auth.router)
 app.include_router(servers.router)
 app.include_router(schedules.router)
 app.include_router(users.router)
+app.include_router(ssh.router)
+app.include_router(tasks.router)
+app.include_router(logs.router)
 
 
 # Serve frontend static files in production
-frontend_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dist")
+_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+frontend_dist = os.path.join(os.path.dirname(_root), "dist")
 if os.path.isdir(frontend_dist):
     # Mount static assets
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")

@@ -26,5 +26,6 @@ export interface Server {
   createdAt: string
   expiredAt?: string
   tags?: Record<string, string>
+  remark?: string
 }
 

@@ -34,8 +34,8 @@
         </template>
         <template #cell-actions="{ row }">
           <div class="action-btns">
-            <Button size="sm" variant="secondary" @click="openEdit(row)">编辑</Button>
-            <Button size="sm" variant="danger" @click="handleDelete(row)">删除</Button>
+            <Button size="sm" variant="secondary" @click="openEdit(row as User)">编辑</Button>
+            <Button size="sm" variant="danger" @click="handleDelete(row as User)">删除</Button>
           </div>
         </template>
       </Table>
@@ -45,7 +45,7 @@
     <EmptyState v-if="!userStore.loading && userStore.users.length === 0" description="暂无用户" />
 
     <!-- Create/Edit Modal -->
-    <Modal v-if="showModal" :title="isEditing ? '编辑用户' : '添加用户'" @close="closeModal">
+    <Modal v-if="showModal" :open="true" :title="isEditing ? '编辑用户' : '添加用户'" @close="closeModal">
       <div class="modal-form">
         <div class="form-group">
           <label class="form-label">用户名</label>
@@ -58,6 +58,10 @@
         <div class="form-group">
           <label class="form-label">手机号</label>
           <Input v-model="editForm.phone" placeholder="请输入手机号" />
+        </div>
+        <div v-if="!isEditing" class="form-group">
+          <label class="form-label">密码</label>
+          <Input v-model="editForm.password" type="password" placeholder="请设置密码" />
         </div>
         <div class="form-group">
           <label class="form-label">角色</label>
@@ -77,6 +81,7 @@
     <!-- Delete Confirm -->
     <ConfirmDialog
       v-if="deleteTarget"
+      :model-value="true"
       title="确认删除"
       :message="`确定要删除用户 ${deleteTarget.username} 吗？此操作不可恢复。`"
       @confirm="confirmDelete"
@@ -103,6 +108,7 @@ const editForm = reactive({
   username: '',
   email: '',
   phone: '',
+  password: '',
   role: 'developer' as string,
   status: 'active' as string
 })
@@ -135,8 +141,8 @@ function roleLabel(role: string) {
   return map[role] || role
 }
 
-function roleBadgeType(role: string) {
-  const map: Record<string, string> = { admin: 'danger', operator: 'primary', developer: 'success', auditor: 'warning' }
+function roleBadgeType(role: string): 'danger' | 'primary' | 'success' | 'warning' | 'default' {
+  const map: Record<string, 'danger' | 'primary' | 'success' | 'warning' | 'default'> = { admin: 'danger', operator: 'primary', developer: 'success', auditor: 'warning' }
   return map[role] || 'default'
 }
 
@@ -146,6 +152,7 @@ function openCreate() {
   editForm.username = ''
   editForm.email = ''
   editForm.phone = ''
+  editForm.password = ''
   editForm.role = 'developer'
   editForm.status = 'active'
   showModal.value = true
@@ -170,7 +177,8 @@ async function save() {
   saving.value = true
   try {
     if (isEditing.value) {
-      await userStore.editUser(editingId, { ...editForm } as any)
+      const { password, ...rest } = editForm
+      await userStore.editUser(editingId, rest as any)
     } else {
       await userStore.addUser({ ...editForm } as any)
     }

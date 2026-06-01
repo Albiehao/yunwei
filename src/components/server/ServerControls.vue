@@ -1,51 +1,45 @@
 <template>
   <div class="server-controls">
-    <Button
-      v-if="status === ServerStatus.Stopped || status === ServerStatus.Error"
-      variant="success"
-      size="sm"
-      :loading="status === ServerStatus.Starting"
-      :disabled="status === ServerStatus.Starting"
-      @click="$emit('start')"
-    >
-      启动
-    </Button>
-    <Button
-      v-if="status === ServerStatus.Running"
-      variant="danger"
-      size="sm"
-      :loading="status === ServerStatus.Stopping"
-      :disabled="status === ServerStatus.Stopping"
-      @click="$emit('stop')"
-    >
-      停止
-    </Button>
-    <Badge
-      v-if="status === ServerStatus.Starting"
-      variant="warning"
-    >
-      启动中...
-    </Badge>
-    <Badge
-      v-if="status === ServerStatus.Stopping"
-      variant="warning"
-    >
-      停止中...
-    </Badge>
+    <!-- Running -->
+    <template v-if="status === 'running'">
+      <template v-if="chargeType === 'PostPaid'">
+        <Button variant="warning" size="sm" :loading="stoppingFree" :disabled="stoppingFree" @click="$emit('stop', 'StopCharging')">
+          停止不收费
+        </Button>
+        <Button variant="danger" size="sm" :loading="stoppingPaid" :disabled="stoppingPaid" @click="$emit('stop', 'KeepCharging')">
+          停止计费
+        </Button>
+      </template>
+      <Button v-else variant="danger" size="sm" :loading="stoppingPaid" @click="$emit('stop', 'KeepCharging')">
+        停止
+      </Button>
+    </template>
+
+    <!-- Stopped / Error -->
+    <template v-if="status === 'stopped' || status === 'error'">
+      <Button variant="success" size="sm" :loading="status === 'starting'" :disabled="status === 'starting'" @click="$emit('start')">
+        启动
+      </Button>
+    </template>
+
+    <!-- Transient states -->
+    <Badge v-if="status === 'starting'" variant="warning">启动中...</Badge>
+    <Badge v-if="status === 'stopping'" variant="warning">停止中...</Badge>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ServerStatus } from '@/types'
 import { Button, Badge } from '@/components/ui'
 
 defineProps<{
-  status: ServerStatus
+  status: string
+  chargeType?: string
 }>()
 
 defineEmits<{
   start: []
-  stop: []
+  stop: [mode: string]
+  release: []
 }>()
 </script>
 

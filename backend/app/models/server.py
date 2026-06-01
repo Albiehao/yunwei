@@ -35,4 +35,5 @@ class Server(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     expired_at = Column(DateTime, nullable=True)
     tags = Column(JSON, nullable=True)
+    remark = Column(String(200), nullable=True)
     user_id = Column(Integer, nullable=False, index=True)

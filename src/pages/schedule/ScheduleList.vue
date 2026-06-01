@@ -46,8 +46,8 @@
         </template>
         <template #cell-operations="{ row }">
           <div class="table-actions">
-            <Button variant="ghost" size="sm" @click="openEdit(row)">编辑</Button>
-            <Button variant="ghost" size="sm" @click="handleDelete(row)">删除</Button>
+            <Button variant="ghost" size="sm" @click="openEdit(row as any)">编辑</Button>
+            <Button variant="ghost" size="sm" @click="handleDelete(row as any)">删除</Button>
           </div>
         </template>
       </Table>

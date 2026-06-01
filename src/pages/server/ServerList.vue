@@ -20,14 +20,15 @@
     <Alert v-else-if="store.error" type="danger" style="margin-bottom:12px">
       {{ store.error }}
       <template #action>
-        <Button variant="danger" size="sm" @click="store.fetchServers()">重试</Button>
+        <Button variant="danger" size="sm" @click="handleRefresh">重试</Button>
       </template>
     </Alert>
 
-    <!-- Search -->
+    <!-- Search + Region -->
     <div v-if="store.servers.length > 0" class="search-bar">
       <Input v-model="searchQuery" placeholder="搜索服务器..." prefix-icon="search" />
-      <Button variant="ghost" @click="store.fetchServers()">刷新</Button>
+      <Select v-model="selectedRegion" :options="regionOptions" placeholder="地域" />
+      <Button variant="ghost" @click="handleRefresh">刷新</Button>
     </div>
 
     <!-- Empty -->
@@ -35,21 +36,35 @@
 
     <!-- Server List -->
     <div v-if="filteredServers.length > 0" class="server-list">
-      <ServerCard v-for="(s, idx) in filteredServers" :key="s.id" :server="s" :style="{ '--i': idx }" @start="handleStart" @stop="handleStop" />
+      <ServerCard v-for="(s, idx) in filteredServers" :key="s.id" :server="s" :style="{ '--i': idx }" @start="handleStart" @stop="handleStop" @release="handleRelease" @namechange="handleNameChange" />
     </div>
     <div v-else-if="store.servers.length > 0 && !store.loading" style="text-align:center;padding:32px;color:var(--color-text-muted)">没有匹配的服务器</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useServerStore } from '@/stores'
 import { PageHeader, EmptyState, SkeletonLoader } from '@/components/common'
 import { ServerCard } from '@/components/server'
-import { Button, Input, Alert } from '@/components/ui'
+import { Button, Input, Select, Alert } from '@/components/ui'
 
 const store = useServerStore()
 const searchQuery = ref('')
+const selectedRegion = ref('')
+
+const regionOptions = [
+  { label: '华东1 (杭州)', value: 'cn-hangzhou' },
+  { label: '华东2 (上海)', value: 'cn-shanghai' },
+  { label: '华北1 (青岛)', value: 'cn-qingdao' },
+  { label: '华北2 (北京)', value: 'cn-beijing' },
+  { label: '华北3 (张家口)', value: 'cn-zhangjiakou' },
+  { label: '华南1 (深圳)', value: 'cn-shenzhen' },
+  { label: '香港', value: 'cn-hongkong' },
+  { label: '新加坡', value: 'ap-southeast-1' },
+  { label: '日本 (东京)', value: 'ap-northeast-1' },
+  { label: '美国 (硅谷)', value: 'us-west-1' },
+]
 
 const filteredServers = computed(() => {
   if (!searchQuery.value) return store.servers
@@ -58,12 +73,29 @@ const filteredServers = computed(() => {
   )
 })
 
+watch(selectedRegion, (region) => {
+  store.fetchServers(region)
+})
+
+function handleRefresh() {
+  store.fetchServers(selectedRegion.value)
+}
+
 async function handleStart(id: string) {
   await store.startServerAction(id)
 }
 
-async function handleStop(id: string) {
-  await store.stopServerAction(id)
+async function handleStop(id: string, mode: string) {
+  await store.stopServerAction(id, mode)
+}
+
+async function handleRelease(id: string) {
+  await store.releaseServerAction(id)
+}
+
+function handleNameChange(id: string, remark: string) {
+  const s = store.servers.find(x => x.id === id)
+  if (s) s.remark = remark
 }
 
 onMounted(() => {
@@ -73,18 +105,22 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .search-bar {
-  background: var(--glass-card);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-card-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
   display: flex;
   align-items: center;
   gap: 10px;
+  box-shadow: var(--shadow-glass);
 }
 
-.search-bar :deep(.input-wrap) { flex: 1; }
+.search-bar :deep(.input-wrap) { flex: 1; min-width: 200px; }
+.search-bar :deep(.select-wrap) { width: auto; min-width: 100px; max-width: 160px; }
+.search-bar :deep(.select-wrap) { min-width: 160px; }
 
 .card-loading {
   background: var(--color-bg-card);
