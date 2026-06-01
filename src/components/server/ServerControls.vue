@@ -17,13 +17,13 @@
 
     <!-- Stopped / Error -->
     <template v-if="status === 'stopped' || status === 'error'">
-      <Button variant="success" size="sm" :loading="status === 'starting'" :disabled="status === 'starting'" @click="$emit('start')">
+      <Button variant="success" size="sm" :loading="(status as string) === 'starting'" :disabled="(status as string) === 'starting'" @click="$emit('start')">
         启动
       </Button>
     </template>
 
     <!-- Transient states -->
-    <Badge v-if="status === 'starting'" variant="warning">启动中...</Badge>
+    <Badge v-if="(status as string) === 'starting'" variant="warning">启动中...</Badge>
     <Badge v-if="status === 'stopping'" variant="warning">停止中...</Badge>
   </div>
 </template>
