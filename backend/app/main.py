@@ -101,7 +101,7 @@ def run_scheduler():
                 if s.action == ScheduleAction.START:
                     ok = start_ecs_instance(inst_id)
                 else:
-                    ok = stop_ecs_instance(inst_id, "KeepCharging")
+                    ok = stop_ecs_instance(inst_id, "StopCharging")
                 add_log(db, user_id=s.user_id or 0, username="scheduler",
                         action=action_name, target_type="server", target_id=inst_id,
                         detail=f"定时{action_name} {inst_id}", result="success" if ok else "failed")
