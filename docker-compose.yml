@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: xuntian-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: xuntian_ops
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: xuntian-backend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: mysql+pymysql://root:12345678@mysql:3306/xuntian_ops
+      SECRET_KEY: xuntian-ops-secret-key-2026
+      ALIYUN_ACCESS_KEY_ID: ""
+      ALIYUN_ACCESS_KEY_SECRET: ""
+      ALIYUN_REGION: cn-hongkong
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
