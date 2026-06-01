@@ -51,6 +51,31 @@ def init_db():
         db.close()
 
 
+def _match_cron(value: str, pattern: str) -> bool:
+    """Check if a value matches a cron pattern (handles *, */N, N-M, N,M,O)"""
+    if pattern == "*":
+        return True
+    # Step: */N
+    if "/" in pattern:
+        base, step = pattern.split("/")
+        step = int(step)
+        val = int(value)
+        if base == "*":
+            return val % step == 0
+        return val >= int(base) and (val - int(base)) % step == 0
+    # Range: N-M
+    if "-" in pattern:
+        parts = pattern.split("-")
+        return int(parts[0]) <= int(value) <= int(parts[1])
+    # Comma-separated list
+    return str(value) in pattern.split(",")
+
+
+def _dow_map(cron_dow: int) -> int:
+    """Convert cron DOW (0=Sun) to Python tm_wday (0=Mon)"""
+    return (cron_dow + 6) % 7
+
+
 def run_scheduler():
     """Background scheduler: check every 60s for tasks to execute"""
     while True:
@@ -63,33 +88,28 @@ def run_scheduler():
                 if len(parts) != 5:
                     continue
                 minute, hour, dom, month, dow = parts
-                match = True
-                if minute != "*" and str(now.tm_min) not in minute.split(","):
-                    match = False
-                if hour != "*" and str(now.tm_hour) not in hour.split(","):
-                    match = False
-                if dom != "*" and str(now.tm_mday) not in dom.split(","):
-                    match = False
-                if month != "*" and str(now.tm_mon) not in month.split(","):
-                    match = False
-                if dow != "*" and str(now.tm_wday) not in dow.split(","):
-                    match = False
-                if match:
-                    server = db.query(Server).filter(Server.id == s.server_id).first()
-                    inst_id = s.server_id
-                    action_name = "start" if s.action == ScheduleAction.START else "stop"
-                    if s.action == ScheduleAction.START:
-                        ok = start_ecs_instance(inst_id)
-                    else:
-                        ok = stop_ecs_instance(inst_id, "KeepCharging")
-                    add_log(db, user_id=s.user_id or 0, username="scheduler",
-                            action=action_name, target_type="server", target_id=inst_id,
-                            detail=f"定时{action_name} {inst_id}", result="success" if ok else "failed")
-                    if ok:
-                        if server:
-                            server.status = ServerStatus.RUNNING if s.action == ScheduleAction.START else ServerStatus.STOPPED
-                        s.last_run_at = __import__("datetime").datetime.utcnow()
-                        db.commit()
+                if not _match_cron(now.tm_min, minute): continue
+                if not _match_cron(now.tm_hour, hour): continue
+                if not _match_cron(now.tm_mday, dom): continue
+                if not _match_cron(now.tm_mon, month): continue
+                # DOW: convert Python's tm_wday (0=Mon) to cron's DOW (0=Sun)
+                if not _match_cron(str(_dow_map(now.tm_wday)), dow): continue
+
+                server = db.query(Server).filter(Server.id == s.server_id).first()
+                inst_id = s.server_id
+                action_name = "start" if s.action == ScheduleAction.START else "stop"
+                if s.action == ScheduleAction.START:
+                    ok = start_ecs_instance(inst_id)
+                else:
+                    ok = stop_ecs_instance(inst_id, "KeepCharging")
+                add_log(db, user_id=s.user_id or 0, username="scheduler",
+                        action=action_name, target_type="server", target_id=inst_id,
+                        detail=f"定时{action_name} {inst_id}", result="success" if ok else "failed")
+                if ok:
+                    if server:
+                        server.status = ServerStatus.RUNNING if s.action == ScheduleAction.START else ServerStatus.STOPPED
+                    s.last_run_at = __import__("datetime").datetime.utcnow()
+                    db.commit()
             db.close()
         except Exception as e:
             print(f"[Scheduler] Error: {e}")
