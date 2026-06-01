@@ -71,9 +71,9 @@ def _match_cron(value: str, pattern: str) -> bool:
     return str(value) in pattern.split(",")
 
 
-def _dow_map(cron_dow: int) -> int:
-    """Convert cron DOW (0=Sun) to Python tm_wday (0=Mon)"""
-    return (cron_dow + 6) % 7
+def _dow_map(py_dow: int) -> int:
+    """Convert Python tm_wday (0=Mon) to cron DOW (0=Sun)"""
+    return (py_dow + 1) % 7
 
 
 def run_scheduler():
@@ -113,7 +113,7 @@ def run_scheduler():
             db.close()
         except Exception as e:
             print(f"[Scheduler] Error: {e}")
-        time.sleep(60)
+        time.sleep(30)
 
 
 @asynccontextmanager
