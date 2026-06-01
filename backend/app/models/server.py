@@ -21,7 +21,7 @@ class ChargeType(str, enum.Enum):
 class Server(Base):
     __tablename__ = "servers"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String(50), primary_key=True)
     name = Column(String(100), nullable=False, index=True)
     instance_type = Column(String(50), nullable=False)
     status = Column(SAEnum(ServerStatus), default=ServerStatus.PENDING, nullable=False)

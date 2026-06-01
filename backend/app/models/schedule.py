@@ -14,7 +14,7 @@ class Schedule(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
-    server_id = Column(Integer, nullable=False, index=True)
+    server_id = Column(String(50), nullable=False, index=True)
     action = Column(SAEnum(ScheduleAction), nullable=False)
     cron_expression = Column(String(50), nullable=False)
     timezone = Column(String(50), default="Asia/Shanghai")
