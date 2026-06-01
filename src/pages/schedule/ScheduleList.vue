@@ -127,12 +127,16 @@ function openEdit(schedule: Schedule) {
 }
 
 async function handleFormSubmit(data: ScheduleFormData) {
-  if (editingSchedule.value) {
-    await store.updateScheduleAction(editingSchedule.value.id, data)
-  } else {
-    await store.createScheduleAction(data)
+  try {
+    if (editingSchedule.value) {
+      await store.updateScheduleAction(editingSchedule.value.id, data)
+    } else {
+      await store.createScheduleAction(data)
+    }
+    dialogVisible.value = false
+  } catch {
+    // error handled by store
   }
-  dialogVisible.value = false
 }
 
 function handleDelete(schedule: Schedule) {
