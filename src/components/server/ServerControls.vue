@@ -29,7 +29,10 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { Button, Badge } from '@/components/ui'
+const stoppingFree = ref(false)
+const stoppingPaid = ref(false)
 
 defineProps<{
   status: string

@@ -60,7 +60,7 @@ const execTarget = ref<TaskItem | null>(null)
 function statusLabel(s: string) {
   return { pending: '待执行', done: '已完成', failed: '失败' }[s] || s
 }
-function statusBadge(s: string) {
+function statusBadge(s: string): "success" | "danger" | "warning" | "default" | "primary" | "info" {
   return { pending: 'warning', done: 'success', failed: 'danger' }[s] || 'default'
 }
 function actionLabel(a: string) {

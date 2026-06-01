@@ -32,7 +32,7 @@
             </Badge>
           </div>
         </div>
-        <Button variant="danger" size="sm" :loading="releasingId === s.id" @click="handleRelease(s)">
+        <Button variant="danger" size="sm" :loading="targetId === s.id" @click="handleRelease(s)">
           释放
         </Button>
       </div>

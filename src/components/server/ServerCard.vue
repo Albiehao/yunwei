@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from "vue"
 import type { Server } from '@/types'
 import ServerStatus from './ServerStatus.vue'
 import { ConfirmDialog } from '@/components/common'
