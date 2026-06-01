@@ -77,7 +77,7 @@ app.include_router(logs.router)
 
 # Serve frontend static files in production
 _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-frontend_dist = os.path.join(os.path.dirname(_root), "dist")
+frontend_dist = os.path.join(_root, "dist")
 if os.path.isdir(frontend_dist):
     # Mount static assets
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
