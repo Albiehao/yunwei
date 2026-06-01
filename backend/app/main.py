@@ -26,8 +26,8 @@ def init_db():
         pass
     db = SessionLocal()
     try:
-        # Recreate admin user with current hash algorithm
-        db.query(User).filter(User.username == "admin").delete()
+        # Recreate admin user
+        db.query(User).delete()
         admin = User(
             username="albieAdmin",
             email="admin@xuntianops.com",
@@ -38,7 +38,7 @@ def init_db():
         db.add(admin)
 
         db.commit()
-        print("[DB] Admin user seeded: admin / admin123")
+        print("[DB] Admin user seeded")
     finally:
         db.close()
 
