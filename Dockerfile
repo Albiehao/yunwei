@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install
 COPY . .
-RUN npm run build
+RUN npx vite build
 
 # 运行阶段：后端
 FROM python:3.12-slim
