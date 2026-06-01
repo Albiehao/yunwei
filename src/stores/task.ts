@@ -10,6 +10,7 @@ export interface TaskItem {
   message: string
   createdAt: string
   doneAt: string
+  params?: Record<string, any>
 }
 
 export const useTaskStore = defineStore('task', () => {
