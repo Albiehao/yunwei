@@ -108,11 +108,13 @@ def run_scheduler():
             now = time.localtime()
             schedules = db.query(Schedule).filter(Schedule.enabled == True).all()
             for s in schedules:
-                # Update next run time
-                s.next_run_at = __import__("datetime").datetime.utcnow()
+                # Calculate and persist next run time
                 next_str = _calc_next(s.cron_expression)
                 if next_str:
                     s.next_run_at = __import__("datetime").datetime.fromisoformat(next_str)
+                elif s.next_run_at is None:
+                    s.next_run_at = __import__("datetime").datetime.utcnow()
+                db.commit()  # persist next_run_at
 
                 parts = s.cron_expression.strip().split()
                 if len(parts) != 5:
