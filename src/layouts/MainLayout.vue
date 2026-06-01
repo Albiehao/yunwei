@@ -1,13 +1,17 @@
 <template>
-  <el-container class="layout-container">
+  <div class="layout">
     <AppSidebar />
-    <el-container class="main-container">
+    <div class="main-area">
       <AppHeader />
-      <el-main class="main-content">
-        <router-view />
-      </el-main>
-    </el-container>
-  </el-container>
+      <main class="main-content">
+        <router-view v-slot="{ Component }">
+          <transition name="page-fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </main>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -16,16 +20,7 @@ import AppHeader from './AppHeader.vue'
 </script>
 
 <style scoped lang="scss">
-.layout-container {
-  height: 100vh;
-}
-.main-container {
-  display: flex;
-  flex-direction: column;
-}
-.main-content {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-}
+.layout { display: flex; height: 100vh; overflow: hidden; }
+.main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.main-content { flex: 1; padding: 24px; overflow-y: auto; }
 </style>

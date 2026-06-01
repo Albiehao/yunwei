@@ -1,98 +1,64 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="title"
-    :width="width"
-    :close-on-click-modal="false"
-    :before-close="handleCancel"
-  >
+  <Modal :open="modelValue" :title="title" width="400px" @update:open="$emit('update:modelValue', $event)">
     <div class="confirm-body">
-      <el-icon :size="24" :color="iconColor" class="confirm-icon">
-        <WarningFilled v-if="type === 'warning'" />
-        <InfoFilled v-else-if="type === 'info'" />
-        <CircleCloseFilled v-else-if="type === 'danger'" />
-        <SuccessFilled v-else />
-      </el-icon>
       <p class="confirm-message">{{ message }}</p>
     </div>
     <template #footer>
-      <el-button @click="handleCancel">取消</el-button>
-      <el-button
-        :type="type === 'danger' ? 'danger' : 'primary'"
-        :loading="loading"
-        @click="handleConfirm"
-      >
-        {{ confirmText }}
-      </el-button>
+      <button class="btn btn--secondary" @click="$emit('update:modelValue', false)">取消</button>
+      <button class="btn" :class="`btn--${type === 'danger' ? 'danger' : 'primary'}`" :disabled="loading" @click="$emit('confirm')">
+        {{ loading ? '处理中...' : confirmText }}
+      </button>
     </template>
-  </el-dialog>
+  </Modal>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import Modal from '@/components/ui/Modal.vue'
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
   modelValue: boolean
   title?: string
   message: string
   type?: 'info' | 'warning' | 'danger'
   confirmText?: string
-  width?: string
   loading?: boolean
 }>(), {
   title: '确认操作',
   type: 'warning',
   confirmText: '确认',
-  width: '420px',
   loading: false
 })
 
-const emit = defineEmits<{
+defineEmits<{
   'update:modelValue': [value: boolean]
-  'confirm': []
-  'cancel': []
+  confirm: []
 }>()
-
-const visible = ref(props.modelValue)
-
-watch(() => props.modelValue, (val) => {
-  visible.value = val
-})
-
-watch(visible, (val) => {
-  emit('update:modelValue', val)
-})
-
-const iconColor = {
-  info: 'var(--el-color-primary)',
-  warning: 'var(--el-color-warning)',
-  danger: 'var(--el-color-danger)'
-}[props.type]
-
-function handleConfirm() {
-  emit('confirm')
-}
-
-function handleCancel() {
-  emit('cancel')
-}
 </script>
 
 <style scoped lang="scss">
-.confirm-body {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 8px 0;
-}
-.confirm-icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
+.confirm-body { padding: 8px 0; }
 .confirm-message {
   font-size: 14px;
   line-height: 1.6;
-  color: var(--el-text-color-primary);
+  color: var(--color-text);
   margin: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+
+  &--primary { background: var(--color-primary); color: white; &:hover { background: var(--color-primary-dark); } }
+  &--secondary { background: var(--color-bg-card); color: var(--color-text); border-color: var(--color-border); &:hover { background: var(--color-bg-hover); } }
+  &--danger { background: var(--color-danger); color: white; &:hover { filter: brightness(0.9); } }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 </style>

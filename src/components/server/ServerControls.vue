@@ -1,49 +1,43 @@
 <template>
   <div class="server-controls">
-    <el-button
+    <Button
       v-if="status === ServerStatus.Stopped || status === ServerStatus.Error"
-      type="success"
-      size="small"
+      variant="success"
+      size="sm"
       :loading="status === ServerStatus.Starting"
-      :icon="VideoPlay"
-      @click="$emit('start')"
       :disabled="status === ServerStatus.Starting"
+      @click="$emit('start')"
     >
       启动
-    </el-button>
-    <el-button
+    </Button>
+    <Button
       v-if="status === ServerStatus.Running"
-      type="danger"
-      size="small"
+      variant="danger"
+      size="sm"
       :loading="status === ServerStatus.Stopping"
-      :icon="VideoPause"
-      @click="$emit('stop')"
       :disabled="status === ServerStatus.Stopping"
+      @click="$emit('stop')"
     >
       停止
-    </el-button>
-    <el-tag
+    </Button>
+    <Badge
       v-if="status === ServerStatus.Starting"
-      type="warning"
-      size="small"
-      effect="plain"
+      variant="warning"
     >
       启动中...
-    </el-tag>
-    <el-tag
+    </Badge>
+    <Badge
       v-if="status === ServerStatus.Stopping"
-      type="warning"
-      size="small"
-      effect="plain"
+      variant="warning"
     >
       停止中...
-    </el-tag>
+    </Badge>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ServerStatus } from '@/types'
-import { VideoPlay, VideoPause } from '@element-plus/icons-vue'
+import { Button, Badge } from '@/components/ui'
 
 defineProps<{
   status: ServerStatus

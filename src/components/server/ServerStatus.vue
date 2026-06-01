@@ -1,11 +1,6 @@
 <template>
   <div class="server-status" :class="`server-status--${status}`">
-    <el-icon :size="16" class="status-icon">
-      <VideoPlay v-if="status === 'running'" />
-      <VideoPause v-else-if="status === 'stopped'" />
-      <Loading v-else-if="status === 'starting' || status === 'stopping'" />
-      <WarningFilled v-else />
-    </el-icon>
+    <Icon :name="statusIcon" :size="16" class="status-icon" />
     <span class="status-name">{{ statusLabel }}</span>
   </div>
 </template>
@@ -13,6 +8,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ServerStatus } from '@/types'
+import { Icon } from '@/components/ui'
 
 const props = defineProps<{
   status: ServerStatus
@@ -27,7 +23,17 @@ const statusLabels: Record<string, string> = {
   [ServerStatus.Error]: '异常'
 }
 
+const statusIcons: Record<string, string> = {
+  [ServerStatus.Running]: 'VideoPlay',
+  [ServerStatus.Stopped]: 'VideoPause',
+  [ServerStatus.Starting]: 'Loading',
+  [ServerStatus.Stopping]: 'Loading',
+  [ServerStatus.Error]: 'WarningFilled',
+  [ServerStatus.Pending]: 'InfoFilled',
+}
+
 const statusLabel = computed(() => statusLabels[props.status] || props.status)
+const statusIcon = computed(() => statusIcons[props.status] || 'InfoFilled')
 </script>
 
 <style scoped lang="scss">
@@ -36,35 +42,42 @@ const statusLabel = computed(() => statusLabels[props.status] || props.status)
   align-items: center;
   gap: 6px;
   padding: 4px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
+  transition: all 0.3s ease;
 
   &--running {
-    color: #67c23a;
-    background: rgba(103, 194, 58, 0.1);
+    color: var(--color-success);
+    background: var(--color-success-bg);
+    .status-icon { animation: pulse-glow 2s ease-in-out infinite; }
   }
   &--stopped {
-    color: #909399;
-    background: rgba(144, 147, 153, 0.1);
+    color: var(--color-text-muted);
+    background: var(--color-bg-hover);
   }
   &--starting, &--stopping {
-    color: #e6a23c;
-    background: rgba(230, 162, 60, 0.1);
+    color: var(--color-warning);
+    background: var(--color-warning-bg);
     .status-icon { animation: spin 1s linear infinite; }
   }
   &--error {
-    color: #f56c6c;
-    background: rgba(245, 108, 108, 0.1);
+    color: var(--color-danger);
+    background: var(--color-danger-bg);
   }
   &--pending {
-    color: #909399;
-    background: rgba(144, 147, 153, 0.1);
+    color: var(--color-text-muted);
+    background: var(--color-bg-hover);
   }
 }
 
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(22, 163, 74, 0.3)); }
+  50% { opacity: 0.7; filter: drop-shadow(0 0 8px rgba(22, 163, 74, 0.5)); }
 }
 </style>

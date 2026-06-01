@@ -1,84 +1,195 @@
 <template>
   <div class="cron-input">
-    <el-input
-      :model-value="modelValue"
-      @update:model-value="$emit('update:modelValue', $event)"
-      placeholder="Cron 表达式 (如 0 9 * * 1-5)"
-      clearable
-    >
-      <template #append>
-        <el-tooltip :content="humanReadable">
-          <el-button :icon="Clock" :disabled="!modelValue" />
-        </el-tooltip>
-      </template>
-    </el-input>
-    <p v-if="modelValue && humanReadable" class="cron-hint">
-      <el-icon><InfoFilled /></el-icon> {{ humanReadable }}
+    <div class="cron-row">
+      <label class="cron-label">频率</label>
+      <Select v-model="frequency" :options="freqOptions" />
+    </div>
+    <div class="cron-row">
+      <label class="cron-label">时间</label>
+      <div class="cron-time">
+        <Select v-model="hour" :options="hourOptions" />
+        <span class="cron-colon">:</span>
+        <Select v-model="minute" :options="minuteOptions" />
+      </div>
+    </div>
+    <div v-if="frequency === 'custom'" class="cron-row">
+      <label class="cron-label">星期</label>
+      <div class="cron-days">
+        <label v-for="d in dayOptions" :key="d.value"
+          class="day-btn" :class="{ 'day-btn--on': selectedDays.includes(d.value) }">
+          <input type="checkbox" :value="d.value" v-model="selectedDays" class="day-input" />
+          {{ d.label }}
+        </label>
+      </div>
+    </div>
+    <p class="cron-preview">
+      <Icon name="schedule" :size="14" />
+      {{ previewText }}
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Clock, InfoFilled } from '@element-plus/icons-vue'
+import { ref, computed, watch } from 'vue'
+import { Select, Icon } from '@/components/ui'
 
 const props = defineProps<{
   modelValue: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-// Simple cron to human readable
-const humanReadable = computed(() => {
-  if (!props.modelValue) return ''
-  const parts = props.modelValue.trim().split(/\s+/)
-  if (parts.length !== 5) return '无效的 Cron 表达式'
+// Parse incoming cron to form state
+const frequency = ref('workday')
+const hour = ref('9')
+const minute = ref('0')
+const selectedDays = ref<string[]>(['1', '2', '3', '4', '5'])
 
-  const [minute, hour, dayOfMonth, month, dayOfWeek] = parts
+const freqOptions = [
+  { label: '每天', value: 'daily' },
+  { label: '工作日（周一至周五）', value: 'workday' },
+  { label: '自定义', value: 'custom' },
+]
 
-  const dowMap = ['日', '一', '二', '三', '四', '五', '六']
+const hourOptions = Array.from({ length: 24 }, (_, i) => ({
+  label: `${String(i).padStart(2, '0')} 时`, value: String(i)
+}))
 
-  if (minute === '0' && hour !== '*') {
-    const hourStr = `${hour.padStart(2, '0')}:00`
-    if (dayOfWeek.startsWith('*/') ? false : dayOfWeek.match(/^[1-5](,[1-5])*$/) && dayOfMonth === '*' && month === '*') {
-      const days = dayOfWeek.split(',').map(d => dowMap[parseInt(d)])
-      return `每周${days.join('、')} ${hourStr} 执行`
-    }
-    if (dayOfWeek === '*' && dayOfMonth === '*' && month === '*') {
-      return `每天 ${hourStr} 执行`
-    }
-    if (dayOfWeek === '0' || dayOfWeek === '6' || dayOfWeek === '0,6') {
-      return `每周末 ${hourStr} 执行`
-    }
-    if (dayOfWeek === '1-5') {
-      return `每个工作日 ${hourStr} 执行`
-    }
+const minuteOptions = [
+  { label: '00 分', value: '0' },
+  { label: '15 分', value: '15' },
+  { label: '30 分', value: '30' },
+  { label: '45 分', value: '45' },
+]
+
+const dayOptions = [
+  { label: '一', value: '1' },
+  { label: '二', value: '2' },
+  { label: '三', value: '3' },
+  { label: '四', value: '4' },
+  { label: '五', value: '5' },
+  { label: '六', value: '6' },
+  { label: '日', value: '0' },
+]
+
+const dayLabels: Record<string, string> = { '1': '一', '2': '二', '3': '三', '4': '四', '5': '五', '6': '六', '0': '日' }
+
+// Generate cron expression from form
+function generateCron(): string {
+  const h = hour.value
+  const m = minute.value
+  if (frequency.value === 'daily') return `${m} ${h} * * *`
+  if (frequency.value === 'workday') return `${m} ${h} * * 1-5`
+  if (frequency.value === 'custom') {
+    if (selectedDays.value.length === 0) return `${m} ${h} * * *`
+    return `${m} ${h} * * ${selectedDays.value.sort().join(',')}`
   }
+  return props.modelValue
+}
 
-  if (minute === '0' && hour === '*' && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
-    return '每小时执行一次'
+// Preview text
+const previewText = computed(() => {
+  const h = hour.value.padStart(2, '0')
+  const m = minute.value.padStart(2, '0')
+  const time = `${h}:${m}`
+  if (frequency.value === 'daily') return `每天 ${time} 执行`
+  if (frequency.value === 'workday') return `周一至周五 ${time} 执行`
+  if (frequency.value === 'custom') {
+    if (selectedDays.value.length === 0) return `请选择至少一天`
+    const days = selectedDays.value.sort().map(d => dayLabels[d]).join('、')
+    return `每周${days} ${time} 执行`
   }
-
-  if (props.modelValue === '*/5 * * * *') return '每 5 分钟执行一次'
-  if (props.modelValue === '*/10 * * * *') return '每 10 分钟执行一次'
-  if (props.modelValue === '*/30 * * * *') return '每 30 分钟执行一次'
-
-  return `Cron: ${props.modelValue}`
+  return ''
 })
+
+// Sync to parent
+watch([frequency, hour, minute, selectedDays], () => {
+  emit('update:modelValue', generateCron())
+}, { immediate: true })
+
+// Parse initial value
+watch(() => props.modelValue, (val) => {
+  if (!val) return
+  const parts = val.trim().split(/\s+/)
+  if (parts.length !== 5) return
+  const [m, h, , , dow] = parts
+  minute.value = m === '*' ? '0' : m
+  hour.value = h === '*' ? '9' : h
+  if (dow === '*' || dow === '?') {
+    frequency.value = 'daily'
+  } else if (dow === '1-5') {
+    frequency.value = 'workday'
+  } else {
+    frequency.value = 'custom'
+    selectedDays.value = dow.split(',').sort()
+  }
+}, { immediate: false })
 </script>
 
 <style scoped lang="scss">
 .cron-input {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.cron-hint {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+.cron-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cron-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  min-width: 40px;
+  flex-shrink: 0;
+}
+.cron-time {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+.cron-colon {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-text);
+}
+.cron-days {
+  display: flex;
+  gap: 6px;
+}
+.day-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-card);
+  &:hover { border-color: var(--color-primary-light); }
+}
+.day-input { position: absolute; opacity: 0; width: 0; height: 0; }
+.day-btn--on {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+.cron-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-primary);
+  font-weight: 500;
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--color-primary-bg);
+  border-radius: var(--radius-sm);
 }
 </style>

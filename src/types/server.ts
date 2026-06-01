@@ -28,12 +28,3 @@ export interface Server {
   tags?: Record<string, string>
 }
 
-export interface PurchaseParams {
-  instanceType: string
-  region: string
-  name: string
-  chargeType: 'PostPaid' | 'PrePaid'
-  duration?: number
-  quantity: number
-  password?: string
-}

@@ -1,10 +1,10 @@
 <template>
   <div class="page-header">
-    <div class="page-header-left">
-      <h2 class="page-title">{{ title }}</h2>
-      <p v-if="description" class="page-description">{{ description }}</p>
+    <div>
+      <h1 class="page-title">{{ title }}</h1>
+      <p v-if="description" class="page-desc">{{ description }}</p>
     </div>
-    <div class="page-header-right">
+    <div class="page-actions">
       <slot name="actions" />
     </div>
   </div>
@@ -22,22 +22,22 @@ defineProps<{
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   gap: 16px;
 }
 .page-title {
   font-size: 22px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-weight: 700;
+  color: var(--color-text);
   margin: 0;
-  line-height: 1.4;
+  letter-spacing: -0.3px;
 }
-.page-description {
+.page-desc {
   font-size: 14px;
-  color: var(--el-text-color-secondary);
-  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
 }
-.page-header-right {
+.page-actions {
   display: flex;
   align-items: center;
   gap: 8px;

@@ -1,12 +1,9 @@
 import api from './index'
-import type { ApiResponse, Server } from '@/types'
+import type { ApiResponse } from '@/types/common'
+import type { Server } from '@/types/server'
 
 export function getServers(): Promise<ApiResponse<Server[]>> {
   return api.get('/servers')
-}
-
-export function getServerById(id: string): Promise<ApiResponse<Server>> {
-  return api.get(`/servers/${id}`)
 }
 
 export function startServer(id: string): Promise<ApiResponse<null>> {

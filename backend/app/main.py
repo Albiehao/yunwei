@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base, SessionLocal
 from app.models import User, UserRole, UserStatus
+from app.models.server import Server
+from app.models.schedule import Schedule
 from app.utils.auth import hash_password
 
 

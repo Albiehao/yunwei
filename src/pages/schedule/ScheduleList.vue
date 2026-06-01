@@ -2,9 +2,7 @@
   <div class="schedule-list-page">
     <PageHeader title="定时任务" description="设置服务器的定时开机与关机任务">
       <template #actions>
-        <el-button type="primary" :icon="Plus" @click="openCreate">
-          新建任务
-        </el-button>
+        <Button variant="primary" @click="openCreate">新建任务</Button>
       </template>
     </PageHeader>
 
@@ -14,15 +12,12 @@
     </template>
 
     <!-- Error -->
-    <el-alert
-      v-else-if="store.error"
-      :title="store.error"
-      type="error" show-icon :closable="false"
-    >
+    <Alert v-else-if="store.error" type="danger">
+      {{ store.error }}
       <template #action>
-        <el-button size="small" type="danger" @click="store.fetchSchedules()">重试</el-button>
+        <Button variant="danger" size="sm" @click="store.fetchSchedules()">重试</Button>
       </template>
-    </el-alert>
+    </Alert>
 
     <!-- Empty -->
     <EmptyState
@@ -33,40 +28,30 @@
     />
 
     <!-- Schedule Table -->
-    <el-card v-else shadow="never">
-      <el-table :data="store.schedules" stripe>
-        <el-table-column label="任务名称" prop="name" min-width="140" />
-        <el-table-column label="目标服务器" prop="serverName" min-width="140" />
-        <el-table-column label="动作" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.action === 'start' ? 'success' : 'danger'" size="small">
-              {{ row.action === 'start' ? '开机' : '关机' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="Cron 表达式" prop="cronExpression" width="160" />
-        <el-table-column label="下次执行" width="180">
-          <template #default="{ row }">
-            {{ row.nextRunAt ? dayjs(row.nextRunAt).format('YYYY-MM-DD HH:mm') : '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <el-switch
-              :model-value="row.enabled"
-              size="small"
-              @change="(val: boolean) => store.toggleScheduleAction(row.id, val)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <div v-else class="schedule-table-wrap">
+      <Table :columns="columns" :data="store.schedules">
+        <template #cell-action="{ row }">
+          <Badge :variant="row.action === 'start' ? 'success' : 'danger'">
+            {{ row.action === 'start' ? '开机' : '关机' }}
+          </Badge>
+        </template>
+        <template #cell-nextRunAt="{ row }">
+          {{ row.nextRunAt ? dayjs(row.nextRunAt).format('YYYY-MM-DD HH:mm') : '-' }}
+        </template>
+        <template #cell-enabled="{ row }">
+          <Switch
+            :modelValue="row.enabled"
+            @update:modelValue="(val: boolean) => store.toggleScheduleAction(row.id, val)"
+          />
+        </template>
+        <template #cell-operations="{ row }">
+          <div class="table-actions">
+            <Button variant="ghost" size="sm" @click="openEdit(row)">编辑</Button>
+            <Button variant="ghost" size="sm" @click="handleDelete(row)">删除</Button>
+          </div>
+        </template>
+      </Table>
+    </div>
 
     <!-- Schedule Form Dialog -->
     <ScheduleForm
@@ -93,7 +78,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useScheduleStore, useServerStore } from '@/stores'
 import { PageHeader, EmptyState, SkeletonLoader, ConfirmDialog } from '@/components/common'
 import ScheduleForm from '@/components/schedule/ScheduleForm.vue'
-import { Plus } from '@element-plus/icons-vue'
+import { Button, Table, Badge, Switch, Alert } from '@/components/ui'
+import type { TableColumn } from '@/components/ui'
 import dayjs from 'dayjs'
 import type { Schedule, ScheduleFormData } from '@/types'
 
@@ -106,6 +92,29 @@ const editingSchedule = ref<Schedule | null>(null)
 const deleteDialogVisible = ref(false)
 const deletingId = ref('')
 const deletingName = ref('')
+
+function cronToHuman(cron: string): string {
+  const parts = cron.trim().split(/\s+/)
+  if (parts.length !== 5) return cron
+  const [m, h, , , dow] = parts
+  const time = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`
+  if (dow === '1-5') return `工作日 ${time}`
+  if (dow === '*') return `每天 ${time}`
+  if (dow === '0,6' || dow === '6,0') return `周末 ${time}`
+  const dayLabels: Record<string, string> = { '1':'一','2':'二','3':'三','4':'四','5':'五','6':'六','0':'日' }
+  const days = dow.split(',').map((d: string) => dayLabels[d] || d).join('、')
+  return `每周${days} ${time}`
+}
+
+const columns: TableColumn[] = [
+  { key: 'name', label: '任务名称', width: '140px' },
+  { key: 'serverName', label: '目标服务器', width: '140px' },
+  { key: 'action', label: '动作', width: '80px' },
+  { key: 'cronExpression', label: '执行时间', width: '160px', formatter: (v: string) => cronToHuman(v) },
+  { key: 'nextRunAt', label: '下次执行', width: '180px' },
+  { key: 'enabled', label: '状态', width: '100px' },
+  { key: 'operations', label: '操作', width: '120px' },
+]
 
 function openCreate() {
   editingSchedule.value = null
@@ -142,3 +151,18 @@ onMounted(() => {
   serverStore.fetchServers()
 })
 </script>
+
+<style scoped lang="scss">
+.schedule-table-wrap {
+  margin-top: 0;
+}
+
+.schedule-table-wrap :deep(.table-wrap) {
+  background: var(--color-bg-card);
+}
+
+.table-actions {
+  display: flex;
+  gap: 4px;
+}
+</style>
