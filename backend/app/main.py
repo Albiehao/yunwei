@@ -29,23 +29,14 @@ def init_db():
         # Recreate admin user with current hash algorithm
         db.query(User).filter(User.username == "admin").delete()
         admin = User(
-            username="admin",
+            username="albieAdmin",
             email="admin@xuntianops.com",
-            password_hash=hash_password("admin123"),
+            password_hash=hash_password("ZjhXhxy1999"),
             role=UserRole.ADMIN,
             status=UserStatus.ACTIVE,
         )
         db.add(admin)
 
-        db.query(User).filter(User.username == "user").delete()
-        demo = User(
-            username="user",
-            email="user@xuntianops.com",
-            password_hash=hash_password("user123"),
-            role=UserRole.OPERATOR,
-            status=UserStatus.ACTIVE,
-        )
-        db.add(demo)
         db.commit()
         print("[DB] Admin user seeded: admin / admin123")
     finally:

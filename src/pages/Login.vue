@@ -32,7 +32,6 @@
           {{ loading ? '登录中...' : '登录' }}
         </Button>
 
-        <p class="login-hint">演示账号：admin / admin123</p>
       </form>
     </div>
   </div>
@@ -134,10 +133,4 @@ async function handleLogin() {
   color: rgba(255, 255, 255, 0.8);
 }
 
-.login-hint {
-  text-align: center;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 12px 0 0;
-}
 </style>
