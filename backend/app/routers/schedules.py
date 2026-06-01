@@ -8,6 +8,24 @@ from app.schemas.schedule import ScheduleCreate, ScheduleUpdate
 from app.utils.auth import get_current_user
 from app.response import success, error
 
+
+def _fmt(s: Schedule, server_name: str = "") -> dict:
+    return {
+        "id": str(s.id),
+        "name": s.name,
+        "serverId": s.server_id,
+        "serverName": server_name or s.server_id,
+        "action": s.action.value if hasattr(s.action, "value") else s.action,
+        "cronExpression": s.cron_expression,
+        "timezone": s.timezone,
+        "enabled": s.enabled,
+        "lastRunAt": s.last_run_at.isoformat() if s.last_run_at else None,
+        "nextRunAt": s.next_run_at.isoformat() if s.next_run_at else None,
+        "createdAt": s.created_at.isoformat() if s.created_at else "",
+        "updatedAt": s.updated_at.isoformat() if s.updated_at else "",
+    }
+
+
 router = APIRouter(prefix="/api/schedules", tags=["定时任务"])
 
 
@@ -17,20 +35,7 @@ def list_schedules(db: Session = Depends(get_db), current_user: User = Depends(g
     result = []
     for s in schedules:
         server = db.query(Server).filter(Server.id == s.server_id).first()
-        result.append({
-            "id": s.id,
-            "name": s.name,
-            "server_id": s.server_id,
-            "server_name": server.name if server else None,
-            "action": s.action.value if hasattr(s.action, 'value') else s.action,
-            "cron_expression": s.cron_expression,
-            "timezone": s.timezone,
-            "enabled": s.enabled,
-            "last_run_at": s.last_run_at,
-            "next_run_at": s.next_run_at,
-            "created_at": s.created_at,
-            "updated_at": s.updated_at,
-        })
+        result.append(_fmt(s, server.name if server else ""))
     return success(result)
 
 
@@ -51,18 +56,7 @@ def create_schedule(data: ScheduleCreate, db: Session = Depends(get_db), current
     db.add(schedule)
     db.commit()
     db.refresh(schedule)
-    return success({
-        "id": schedule.id,
-        "name": schedule.name,
-        "server_id": schedule.server_id,
-        "server_name": server.name,
-        "action": schedule.action.value if hasattr(schedule.action, 'value') else schedule.action,
-        "cron_expression": schedule.cron_expression,
-        "timezone": schedule.timezone,
-        "enabled": schedule.enabled,
-        "created_at": schedule.created_at,
-        "updated_at": schedule.updated_at,
-    })
+    return success(_fmt(schedule, server.name))
 
 
 @router.put("/{schedule_id}")
@@ -75,20 +69,7 @@ def update_schedule(schedule_id: int, data: ScheduleUpdate, db: Session = Depend
     db.commit()
     db.refresh(schedule)
     server = db.query(Server).filter(Server.id == schedule.server_id).first()
-    return success({
-        "id": schedule.id,
-        "name": schedule.name,
-        "server_id": schedule.server_id,
-        "server_name": server.name if server else None,
-        "action": schedule.action.value if hasattr(schedule.action, 'value') else schedule.action,
-        "cron_expression": schedule.cron_expression,
-        "timezone": schedule.timezone,
-        "enabled": schedule.enabled,
-        "last_run_at": schedule.last_run_at,
-        "next_run_at": schedule.next_run_at,
-        "created_at": schedule.created_at,
-        "updated_at": schedule.updated_at,
-    })
+    return success(_fmt(schedule, server.name if server else ""))
 
 
 @router.delete("/{schedule_id}")
