@@ -1,3 +1,7 @@
+import os
+import time
+import threading
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,11 +9,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.database import engine, Base, SessionLocal
 from app.models import User, UserRole, UserStatus
-from app.models.server import Server
-from app.models.schedule import Schedule
+from app.models.server import Server, ServerStatus
+from app.models.schedule import Schedule, ScheduleAction
 from app.models.task import Task
+from app.models.log import Log
 from app.utils.auth import hash_password
-import os
+from app.aliyun_client import start_ecs_instance, stop_ecs_instance
+from app.utils.log import add_log
+
+logger = logging.getLogger(__name__)
 
 
 def init_db():
@@ -43,9 +51,57 @@ def init_db():
         db.close()
 
 
+def run_scheduler():
+    """Background scheduler: check every 60s for tasks to execute"""
+    while True:
+        try:
+            db = SessionLocal()
+            now = time.localtime()
+            schedules = db.query(Schedule).filter(Schedule.enabled == True).all()
+            for s in schedules:
+                parts = s.cron_expression.strip().split()
+                if len(parts) != 5:
+                    continue
+                minute, hour, dom, month, dow = parts
+                match = True
+                if minute != "*" and str(now.tm_min) not in minute.split(","):
+                    match = False
+                if hour != "*" and str(now.tm_hour) not in hour.split(","):
+                    match = False
+                if dom != "*" and str(now.tm_mday) not in dom.split(","):
+                    match = False
+                if month != "*" and str(now.tm_mon) not in month.split(","):
+                    match = False
+                if dow != "*" and str(now.tm_wday) not in dow.split(","):
+                    match = False
+                if match:
+                    server = db.query(Server).filter(Server.id == s.server_id).first()
+                    inst_id = s.server_id
+                    action_name = "start" if s.action == ScheduleAction.START else "stop"
+                    if s.action == ScheduleAction.START:
+                        ok = start_ecs_instance(inst_id)
+                    else:
+                        ok = stop_ecs_instance(inst_id, "KeepCharging")
+                    add_log(db, user_id=s.user_id or 0, username="scheduler",
+                            action=action_name, target_type="server", target_id=inst_id,
+                            detail=f"定时{action_name} {inst_id}", result="success" if ok else "failed")
+                    if ok:
+                        if server:
+                            server.status = ServerStatus.RUNNING if s.action == ScheduleAction.START else ServerStatus.STOPPED
+                        s.last_run_at = __import__("datetime").datetime.utcnow()
+                        db.commit()
+            db.close()
+        except Exception as e:
+            print(f"[Scheduler] Error: {e}")
+        time.sleep(60)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    t = threading.Thread(target=run_scheduler, daemon=True)
+    t.start()
+    print("[Scheduler] Started")
     yield
 
 
